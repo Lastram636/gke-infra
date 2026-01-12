@@ -5,6 +5,8 @@ on:
     branches:
       - main
   pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -15,8 +17,8 @@ env:
   TF_VAR_region: ${{ secrets.GCP_REGION }}
 
 jobs:
-  terraform-plan:
-    name: 'Terraform Plan'
+  terraform:
+    name: 'Terraform'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -26,7 +28,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    # Security Scan
+    # Security Scan (Runs on PR and Push)
     - name: Run Trivy vulnerability scanner in IaC mode
       uses: aquasecurity/trivy-action@master
       with:
@@ -35,12 +37,12 @@ jobs:
         format: 'table'
         severity: 'CRITICAL,HIGH'
         scan-ref: './terraform'
-      continue-on-error: true # Allow to fail for demo purposes
+      continue-on-error: true
 
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v1
       with:
-        credentials_json: ${{ secrets.GCP_CREDENTIALS }} 
+        credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
     - name: Ensure State Bucket Exists
       run: |
@@ -57,49 +59,15 @@ jobs:
       uses: hashicorp/setup-terraform@v2
 
     - name: Terraform Init
-      run: terraform init -backend-config="bucket=${{ env.GCP_TF_STATE_BUCKET }}"
-
-    - name: Terraform Plan
-      run: terraform plan -out=tfplan
-
-    - name: Upload Plan
-      uses: actions/upload-artifact@v4
-      with:
-        name: tfplan
-        path: terraform/tfplan
-
-  terraform-apply:
-    name: 'Terraform Apply'
-    needs: terraform-plan
-    runs-on: ubuntu-latest
-    environment: production # Use this for Manual Approval protection rule in GitHub
-    if: github.ref == 'refs/heads/main'
-    defaults:
-      run:
-        working-directory: ./terraform
-
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - name: Download Plan
-      uses: actions/download-artifact@v4
-      with:
-        name: tfplan
-        path: terraform
-
-    - name: Authenticate to Google Cloud
-      uses: google-github-actions/auth@v1
-      with:
-        credentials_json: ${{ secrets.GCP_CREDENTIALS }}
-
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
-
-    - name: Terraform Init
       run: |
         BUCKET_NAME="${{ secrets.GCP_PROJECT_ID }}-tf-state"
         terraform init -backend-config="bucket=$BUCKET_NAME"
 
+    # Plan runs on both PR and Push to ensure validity
+    - name: Terraform Plan
+      run: terraform plan -input=false
+
+    # Apply ONLY runs on Push to Main (Merge)
     - name: Terraform Apply
-      run: terraform apply -auto-approve tfplan
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: terraform apply -auto-approve -input=false

@@ -41,15 +41,23 @@ jobs:
       uses: google-github-actions/auth@v1
       with:
         credentials_json: ${{ secrets.GCP_CREDENTIALS }} 
-        # For Workload Identity Federation, use:
-        # workload_identity_provider: 'projects/12345/locations/global/workloadIdentityPools/my-pool/providers/my-provider'
-        # service_account: 'my-service-account@my-project.iam.gserviceaccount.com'
+
+    - name: Ensure State Bucket Exists
+      run: |
+        BUCKET_NAME="${{ secrets.GCP_PROJECT_ID }}-tf-state"
+        if ! gcloud storage ls gs://$BUCKET_NAME > /dev/null 2>&1; then
+          echo "Bucket $BUCKET_NAME not found. Creating..."
+          gcloud storage buckets create gs://$BUCKET_NAME --location=${{ secrets.GCP_REGION }}
+        else
+          echo "Bucket $BUCKET_NAME already exists."
+        fi
+        echo "GCP_TF_STATE_BUCKET=$BUCKET_NAME" >> $GITHUB_ENV
 
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
 
     - name: Terraform Init
-      run: terraform init -backend-config="bucket=${{ secrets.GCP_TF_STATE_BUCKET }}"
+      run: terraform init -backend-config="bucket=${{ env.GCP_TF_STATE_BUCKET }}"
 
     - name: Terraform Plan
       run: terraform plan -out=tfplan
@@ -89,7 +97,9 @@ jobs:
       uses: hashicorp/setup-terraform@v2
 
     - name: Terraform Init
-      run: terraform init -backend-config="bucket=${{ secrets.GCP_TF_STATE_BUCKET }}"
+      run: |
+        BUCKET_NAME="${{ secrets.GCP_PROJECT_ID }}-tf-state"
+        terraform init -backend-config="bucket=$BUCKET_NAME"
 
     - name: Terraform Apply
       run: terraform apply -auto-approve tfplan

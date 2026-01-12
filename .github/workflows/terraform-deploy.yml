@@ -44,6 +44,12 @@ jobs:
       with:
         credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
+    - name: Enable Required APIs
+      run: |
+        gcloud services enable cloudresourcemanager.googleapis.com serviceusage.googleapis.com
+        echo "Waiting for APIs to propagate..."
+        sleep 30
+
     - name: Ensure State Bucket Exists
       run: |
         BUCKET_NAME="${{ secrets.GCP_PROJECT_ID }}-tf-state"

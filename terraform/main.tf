@@ -1,6 +1,21 @@
+# Enable GKE API
+resource "google_project_service" "container" {
+  service = "container.googleapis.com"
+  disable_on_destroy = false
+}
+
+# Enable Artifact Registry API
+resource "google_project_service" "artifactregistry" {
+  service = "artifactregistry.googleapis.com"
+  disable_on_destroy = false
+}
+
 resource "google_container_cluster" "primary" {
   name     = var.cluster_name
   location = var.region
+  
+  # Wait for the API to be enabled
+  depends_on = [google_project_service.container]
 
   # We can't create a cluster with no node pool defined, but we want to only use
   # separately managed node pools. So we create the smallest possible default

@@ -14,6 +14,9 @@ resource "google_container_cluster" "primary" {
   name     = var.cluster_name
   location = var.region
   
+  # Set deletion protection to false to allow terraform destroy
+  deletion_protection = false
+  
   # Wait for the API to be enabled
   depends_on = [google_project_service.container]
 

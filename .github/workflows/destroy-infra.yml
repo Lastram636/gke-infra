@@ -36,5 +36,8 @@ jobs:
         BUCKET_NAME="${{ secrets.GCP_PROJECT_ID }}-tf-state"
         terraform init -backend-config="bucket=$BUCKET_NAME"
 
+    - name: Disable Deletion Protection (Apply)
+      run: terraform apply -auto-approve
+
     - name: Terraform Destroy
       run: terraform destroy -auto-approve

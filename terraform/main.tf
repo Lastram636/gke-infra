@@ -12,7 +12,7 @@ resource "google_project_service" "artifactregistry" {
 
 resource "google_container_cluster" "primary" {
   name     = var.cluster_name
-  location = var.region
+  location = "${var.region}-a"
   
   # Set deletion protection to false to allow terraform destroy
   deletion_protection = false
@@ -29,7 +29,7 @@ resource "google_container_cluster" "primary" {
 
 resource "google_container_node_pool" "primary_preemptible_nodes" {
   name       = "${var.cluster_name}-node-pool"
-  location   = var.region
+  location   = "${var.region}-a"
   cluster    = google_container_cluster.primary.name
   node_count = var.node_count
 

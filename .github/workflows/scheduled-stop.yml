@@ -2,7 +2,7 @@ name: 'Scheduled Stop (Scale Down)'
 
 on:
   schedule:
-    - cron: '0 15 * * 1-5' # 16:00 CET (UTC+1) Mon-Fri
+    - cron: '3 15 * * 1-5' # 16:03 CET (UTC+1) Mon-Fri
   workflow_dispatch: # Allow manual trigger for testing
 
 permissions:

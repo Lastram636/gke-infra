@@ -1,0 +1,43 @@
+name: 'Scheduled Stop (Scale Down)'
+
+on:
+  schedule:
+    - cron: '0 15 * * 1-5' # 16:00 CET (UTC+1) Mon-Fri
+  workflow_dispatch: # Allow manual trigger for testing
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
+  TF_VAR_region: ${{ secrets.GCP_REGION }}
+  TF_VAR_node_count: 0
+
+jobs:
+  scale-down:
+    name: 'Scale GKE to 0 Nodes'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./terraform
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+
+    - name: Terraform Init
+      run: |
+        BUCKET_NAME="${{ secrets.GCP_PROJECT_ID }}-tf-state"
+        terraform init -backend-config="bucket=$BUCKET_NAME"
+
+    - name: Terraform Apply (Scale Down)
+      run: terraform apply -auto-approve

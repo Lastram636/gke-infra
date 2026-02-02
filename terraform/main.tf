@@ -36,6 +36,8 @@ resource "google_container_node_pool" "primary_preemptible_nodes" {
   node_config {
     preemptible  = true
     machine_type = var.machinetype
+    disk_size_gb = 30
+    disk_type    = "pd-standard"
 
     # Google recommends custom service accounts that have cloud-platform scope related permissions
     # service_account = google_service_account.default.email
